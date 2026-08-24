@@ -41,6 +41,11 @@ dependencies:
   uuid: ^4.5.3
   google_fonts: ^8.1.0
 
+  # --- Banco de dados SQL local (SQLite) ---
+  sqflite: ^2.4.1                 # driver SQLite para Android/iOS
+  sqflite_common_ffi_web: ^1.0.0  # implementação de SQLite para rodar na Web (Chrome)
+  path: ^1.9.0                    # monta o caminho do arquivo do banco de forma segura
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
