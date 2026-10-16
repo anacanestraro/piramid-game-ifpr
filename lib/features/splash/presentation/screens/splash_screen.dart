@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
@@ -11,13 +13,31 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  // Tempo mínimo para a Splash não "piscar" quando a verificação é rápida.
+  static const _minimumDisplayTime = Duration(milliseconds: 1500);
+
   @override
   void initState() {
     super.initState();
-    // Apos 2300ms, navega para a primeira aba (Inicio).
-    Future.delayed(const Duration(milliseconds: 2300), () {
-      if (mounted) context.go('/inicio');
-    });
+    _checkSessionAndNavigate();
+  }
+
+  Future<void> _checkSessionAndNavigate() async {
+    final authViewModel = InjectionContainer.instance.authViewModel;
+
+    // Verifica a sessão e espera o tempo mínimo ao mesmo tempo.
+    await Future.wait([
+      authViewModel.checkAuthCommand.execute(),
+      Future.delayed(_minimumDisplayTime),
+    ]);
+
+    if (!mounted) return;
+
+    final destination = authViewModel.isAuthenticated.value
+        ? AppRoutes.home
+        : AppRoutes.login;
+
+    context.go(destination);
   }
 
   @override
@@ -46,7 +66,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.green.withOpacity(.4),
+                      color: AppColors.green.withValues(alpha: .4),
                       blurRadius: 44,
                       offset: const Offset(0, 22),
                     ),
@@ -83,7 +103,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               const SizedBox(height: 44),
 
-              // Barra de loading (visual estatico - sem animacao por agora)
+              // Barra de loading
               Container(
                 width: 168,
                 height: 5,
@@ -107,7 +127,7 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: 18),
 
               Text(
-                'CARREGANDO O PÓDIO…',
+                'VERIFICANDO SUA SESSÃO…',
                 style: AppTextStyles.jakarta(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,

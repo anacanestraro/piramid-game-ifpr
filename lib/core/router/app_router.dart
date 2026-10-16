@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../di/injection_container.dart';
+import '../../features/about/presentation/screens/about_screen.dart';
+import '../../features/auth/presentation/screens/login/login_screen.dart';
+import '../../features/auth/presentation/screens/sign_up/sign_up_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/student/presentation/screens/home/home_screen.dart';
 import '../../features/student/presentation/screens/ranking/ranking_screen.dart';
-import '../../features/student/presentation/screens/student_form/student_form_screen.dart';
 import '../../features/student/presentation/screens/student_detail/student_detail_screen.dart';
-import '../../features/about/presentation/screens/about_screen.dart';
+import '../../features/student/presentation/screens/student_form/student_form_screen.dart';
+import 'app_routes.dart';
 import 'app_shell.dart';
 
 class AppRouter {
@@ -14,11 +18,20 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/',
+    initialLocation: AppRoutes.splash,
+    redirect: _guard,
     routes: [
       GoRoute(
-        path: '/',
+        path: AppRoutes.splash,
         builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.login,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.signUp,
+        builder: (context, state) => const SignUpScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -29,7 +42,7 @@ class AppRouter {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/inicio',
+                path: AppRoutes.home,
                 builder: (context, state) => const HomeScreen(),
               ),
             ],
@@ -38,7 +51,7 @@ class AppRouter {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/ranking',
+                path: AppRoutes.ranking,
                 builder: (context, state) => const RankingScreen(),
               ),
             ],
@@ -62,11 +75,13 @@ class AppRouter {
               ),
             ],
           ),
+          // Aba: Aluno (detalhes)
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: '/aluno',
-                builder: (context, state) => const StudentDetailScreen(studentId: null),
+                builder: (context, state) =>
+                    const StudentDetailScreen(studentId: null),
                 routes: [
                   GoRoute(
                     path: ':id',
@@ -83,7 +98,7 @@ class AppRouter {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/sobre',
+                path: AppRoutes.about,
                 builder: (context, state) => const AboutScreen(),
               ),
             ],
@@ -92,4 +107,27 @@ class AppRouter {
       ),
     ],
   );
+
+  // Executado antes de cada navegação.
+  // Retornar null = segue para a rota pedida; retornar um caminho = desvia.
+  static String? _guard(BuildContext context, GoRouterState state) {
+    final location = state.matchedLocation;
+    final isPublic = AppRoutes.publicRoutes.contains(location);
+    final isAuthenticated =
+        InjectionContainer.instance.authViewModel.isAuthenticated.value;
+
+    // Sem sessão tentando acessar área protegida -> login.
+    if (!isAuthenticated && !isPublic) {
+      return AppRoutes.login;
+    }
+
+    // Já logado tentando abrir login/criar conta -> início.
+    final isAuthScreen =
+        location == AppRoutes.login || location == AppRoutes.signUp;
+    if (isAuthenticated && isAuthScreen) {
+      return AppRoutes.home;
+    }
+
+    return null;
+  }
 }
