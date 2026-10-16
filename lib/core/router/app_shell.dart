@@ -4,6 +4,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 import '../di/injection_container.dart';
 import '../theme/app_colors.dart';
 import '../ui/app_feedback.dart';
+import '../ui/confirm_dialog.dart';
 import '../../features/theme_settings/domain/entities/app_theme_mode.dart';
 import 'app_routes.dart';
 
@@ -12,26 +13,16 @@ class AppShell extends StatelessWidget {
 
   const AppShell({super.key, required this.navigationShell});
 
+  static const _peopleTab = 0;
+
   void _onTap(int index) {
-    if (index == 1) {
-      InjectionContainer.instance.rankingViewModel.refresh();
-    }
-
-    if (index == 2) {
-      InjectionContainer.instance.studentFormViewModel.reset();
-    }
-
-    if (index == 3) {
-      final currentStudent =
-          InjectionContainer.instance.studentDetailViewModel.student.value;
-      if (currentStudent != null) {
-        InjectionContainer.instance.studentDetailViewModel
-            .loadStudent(currentStudent.id);
-      }
+    if (index == _peopleTab) {
+      InjectionContainer.instance.peopleListViewModel.refresh();
     }
 
     navigationShell.goBranch(
       index,
+      // Tocar de novo na aba atual volta para o início dela.
       initialLocation: index == navigationShell.currentIndex,
     );
   }
@@ -54,15 +45,13 @@ class AppShell extends StatelessWidget {
         onDestinationSelected: _onTap,
         destinations: const [
           NavigationDestination(
-              icon: Icon(Icons.home_rounded), label: 'Início'),
+            icon: Icon(Icons.groups_rounded),
+            label: 'Pessoas',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.leaderboard_rounded), label: 'Ranking'),
-          NavigationDestination(
-              icon: Icon(Icons.add_circle_rounded), label: 'Cadastrar'),
-          NavigationDestination(
-              icon: Icon(Icons.account_circle_rounded), label: 'Aluno'),
-          NavigationDestination(
-              icon: Icon(Icons.info_rounded), label: 'Sobre'),
+            icon: Icon(Icons.info_rounded),
+            label: 'Sobre',
+          ),
         ],
       ),
     );
@@ -141,26 +130,15 @@ class _LogoutButton extends StatelessWidget {
   const _LogoutButton();
 
   Future<void> _confirmAndLogout(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Sair da conta?'),
-        content: const Text('Você precisará entrar novamente para usar o app.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.red),
-            child: const Text('Sair'),
-          ),
-        ],
-      ),
+    final confirmed = await ConfirmDialog.show(
+      context,
+      title: 'Sair da conta?',
+      message: 'Você precisará entrar novamente para usar o app.',
+      confirmLabel: 'Sair',
+      isDestructive: true,
     );
 
-    if (confirmed != true || !context.mounted) return;
+    if (!confirmed || !context.mounted) return;
 
     final viewModel = InjectionContainer.instance.authViewModel;
     await viewModel.logoutCommand.execute();

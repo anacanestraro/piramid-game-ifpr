@@ -4,11 +4,10 @@ import '../di/injection_container.dart';
 import '../../features/about/presentation/screens/about_screen.dart';
 import '../../features/auth/presentation/screens/login/login_screen.dart';
 import '../../features/auth/presentation/screens/sign_up/sign_up_screen.dart';
+import '../../features/person/presentation/screens/people_list/people_list_screen.dart';
+import '../../features/person/presentation/screens/person_detail/person_detail_screen.dart';
+import '../../features/person/presentation/screens/person_form/person_form_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
-import '../../features/student/presentation/screens/home/home_screen.dart';
-import '../../features/student/presentation/screens/ranking/ranking_screen.dart';
-import '../../features/student/presentation/screens/student_detail/student_detail_screen.dart';
-import '../../features/student/presentation/screens/student_form/student_form_screen.dart';
 import 'app_routes.dart';
 import 'app_shell.dart';
 
@@ -33,61 +32,41 @@ class AppRouter {
         path: AppRoutes.signUp,
         builder: (context, state) => const SignUpScreen(),
       ),
+
+      // Formulário em tela cheia (por cima das abas).
+      // Declarado antes do shell para "/pessoas/nova" não ser
+      // interpretado como "/pessoas/:id".
+      GoRoute(
+        path: AppRoutes.newPerson,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const PersonFormScreen(),
+      ),
+      GoRoute(
+        path: '${AppRoutes.people}/:id/editar',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return PersonFormScreen(personId: id);
+        },
+      ),
+
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return AppShell(navigationShell: navigationShell);
         },
         branches: [
-          // Aba: Inicio
+          // Aba: Pessoas (lista + detalhes)
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: AppRoutes.home,
-                builder: (context, state) => const HomeScreen(),
-              ),
-            ],
-          ),
-          // Aba: Ranking
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: AppRoutes.ranking,
-                builder: (context, state) => const RankingScreen(),
-              ),
-            ],
-          ),
-          // Aba: Cadastro (criar) + editar como sub-rota
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/cadastro',
-                builder: (context, state) =>
-                    const StudentFormScreen(studentId: null),
-                routes: [
-                  GoRoute(
-                    path: 'editar/:id',
-                    builder: (context, state) {
-                      final id = state.pathParameters['id']!;
-                      return StudentFormScreen(studentId: id);
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-          // Aba: Aluno (detalhes)
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/aluno',
-                builder: (context, state) =>
-                    const StudentDetailScreen(studentId: null),
+                path: AppRoutes.people,
+                builder: (context, state) => const PeopleListScreen(),
                 routes: [
                   GoRoute(
                     path: ':id',
                     builder: (context, state) {
                       final id = state.pathParameters['id']!;
-                      return StudentDetailScreen(studentId: id);
+                      return PersonDetailScreen(personId: id);
                     },
                   ),
                 ],
