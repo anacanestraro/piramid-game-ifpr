@@ -8,6 +8,7 @@ import '../../features/auth/data/services/firebase_google_auth_service.dart';
 import '../../features/auth/data/services/user_firestore_service.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/get_current_user_usecase.dart';
+import '../../features/auth/domain/usecases/require_authenticated_user.dart';
 import '../../features/auth/domain/usecases/sign_in_usecase.dart';
 import '../../features/auth/domain/usecases/sign_in_with_google_usecase.dart';
 import '../../features/auth/domain/usecases/sign_out_usecase.dart';
@@ -15,7 +16,18 @@ import '../../features/auth/domain/usecases/sign_up_usecase.dart';
 import '../../features/auth/facade/auth_usecases_facade.dart';
 import '../../features/auth/presentation/viewmodels/auth_viewmodel.dart';
 
-// --- Student ---
+// --- Person ---
+import '../../features/person/data/repositories/person_repository_impl.dart';
+import '../../features/person/data/services/person_firestore_service.dart';
+import '../../features/person/domain/repositories/person_repository.dart';
+import '../../features/person/domain/usecases/create_person_usecase.dart';
+import '../../features/person/domain/usecases/delete_person_usecase.dart';
+import '../../features/person/domain/usecases/get_all_people_usecase.dart';
+import '../../features/person/domain/usecases/get_person_by_id_usecase.dart';
+import '../../features/person/domain/usecases/update_person_usecase.dart';
+import '../../features/person/facade/person_usecases_facade.dart';
+
+// --- Student (será removido no passo 5) ---
 import '../../features/student/data/services/student_local_service.dart';
 import '../../features/student/data/services/student_shared_prefs_service.dart';
 import '../../features/student/data/repositories/student_repository_impl.dart';
@@ -50,7 +62,12 @@ class InjectionContainer {
 
   // --- Auth ---
   late final AuthRepository _authRepository;
+  late final RequireAuthenticatedUser _requireUser;
   late final AuthUseCasesFacade authFacade;
+
+  // --- Person ---
+  late final PersonRepository _personRepository;
+  late final PersonUseCasesFacade personFacade;
 
   // --- Student ---
   late final StudentLocalService _studentLocalService;
@@ -79,6 +96,7 @@ class InjectionContainer {
     _storageHelper = LocalStorageHelper();
 
     _initAuth();
+    _initPerson();
     _initStudent();
     _initTheme();
     _initViewModels();
@@ -93,12 +111,26 @@ class InjectionContainer {
       UserFirestoreService(),
     );
 
+    _requireUser = RequireAuthenticatedUser(_authRepository);
+
     authFacade = AuthUseCasesFacade(
       signUp: SignUpUseCase(_authRepository),
       signIn: SignInUseCase(_authRepository),
       signInWithGoogle: SignInWithGoogleUseCase(_authRepository),
       getCurrentUser: GetCurrentUserUseCase(_authRepository),
       signOut: SignOutUseCase(_authRepository),
+    );
+  }
+
+  void _initPerson() {
+    _personRepository = PersonRepositoryImpl(PersonFirestoreService());
+
+    personFacade = PersonUseCasesFacade(
+      create: CreatePersonUseCase(_personRepository, _requireUser),
+      update: UpdatePersonUseCase(_personRepository, _requireUser),
+      delete: DeletePersonUseCase(_personRepository, _requireUser),
+      getAll: GetAllPeopleUseCase(_personRepository),
+      getById: GetPersonByIdUseCase(_personRepository),
     );
   }
 
