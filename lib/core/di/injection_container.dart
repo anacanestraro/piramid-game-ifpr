@@ -26,8 +26,11 @@ import '../../features/person/domain/usecases/get_all_people_usecase.dart';
 import '../../features/person/domain/usecases/get_person_by_id_usecase.dart';
 import '../../features/person/domain/usecases/update_person_usecase.dart';
 import '../../features/person/facade/person_usecases_facade.dart';
+import '../../features/person/presentation/viewmodels/people_list_viewmodel.dart';
+import '../../features/person/presentation/viewmodels/person_detail_viewmodel.dart';
+import '../../features/person/presentation/viewmodels/person_form_viewmodel.dart';
 
-// --- Student (será removido no passo 5) ---
+// --- Student (será removido no passo 8) ---
 import '../../features/student/data/services/student_local_service.dart';
 import '../../features/student/data/services/student_shared_prefs_service.dart';
 import '../../features/student/data/repositories/student_repository_impl.dart';
@@ -81,6 +84,9 @@ class InjectionContainer {
 
   // --- ViewModels ---
   late final AuthViewModel authViewModel;
+  late final PeopleListViewModel peopleListViewModel;
+  late final PersonFormViewModel personFormViewModel;
+  late final PersonDetailViewModel personDetailViewModel;
   late final StudentFormViewModel studentFormViewModel;
   late final RankingViewModel rankingViewModel;
   late final StudentDetailViewModel studentDetailViewModel;
@@ -158,6 +164,14 @@ class InjectionContainer {
 
   void _initViewModels() {
     authViewModel = AuthViewModel(authFacade);
+
+    peopleListViewModel = PeopleListViewModel(personFacade);
+    personFormViewModel = PersonFormViewModel(personFacade);
+    personDetailViewModel = PersonDetailViewModel(
+      personFacade,
+      authViewModel.currentUser,
+    );
+
     studentFormViewModel = StudentFormViewModel(studentFacade);
     rankingViewModel = RankingViewModel(studentFacade);
     studentDetailViewModel = StudentDetailViewModel(studentFacade);
