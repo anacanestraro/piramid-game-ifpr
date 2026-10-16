@@ -13,6 +13,7 @@ import '../../features/auth/domain/usecases/sign_in_with_google_usecase.dart';
 import '../../features/auth/domain/usecases/sign_out_usecase.dart';
 import '../../features/auth/domain/usecases/sign_up_usecase.dart';
 import '../../features/auth/facade/auth_usecases_facade.dart';
+import '../../features/auth/presentation/viewmodels/auth_viewmodel.dart';
 
 // --- Student ---
 import '../../features/student/data/services/student_local_service.dart';
@@ -62,6 +63,7 @@ class InjectionContainer {
   late final ThemeUseCasesFacade themeFacade;
 
   // --- ViewModels ---
+  late final AuthViewModel authViewModel;
   late final StudentFormViewModel studentFormViewModel;
   late final RankingViewModel rankingViewModel;
   late final StudentDetailViewModel studentDetailViewModel;
@@ -123,6 +125,7 @@ class InjectionContainer {
   }
 
   void _initViewModels() {
+    authViewModel = AuthViewModel(authFacade);
     studentFormViewModel = StudentFormViewModel(studentFacade);
     rankingViewModel = RankingViewModel(studentFacade);
     studentDetailViewModel = StudentDetailViewModel(studentFacade);
