@@ -27,6 +27,7 @@ import '../../features/evaluation/domain/usecases/get_my_evaluations_usecase.dar
 import '../../features/evaluation/domain/usecases/register_evaluation_usecase.dart';
 import '../../features/evaluation/domain/usecases/update_evaluation_usecase.dart';
 import '../../features/evaluation/facade/evaluation_usecases_facade.dart';
+import '../../features/evaluation/presentation/viewmodels/evaluation_form_viewmodel.dart';
 
 // --- Person ---
 import '../../features/person/data/repositories/person_repository_impl.dart';
@@ -101,6 +102,7 @@ class InjectionContainer {
   late final PeopleListViewModel peopleListViewModel;
   late final PersonFormViewModel personFormViewModel;
   late final PersonDetailViewModel personDetailViewModel;
+  late final EvaluationFormViewModel evaluationFormViewModel;
   late final StudentFormViewModel studentFormViewModel;
   late final RankingViewModel rankingViewModel;
   late final StudentDetailViewModel studentDetailViewModel;
@@ -206,6 +208,10 @@ class InjectionContainer {
     personDetailViewModel = PersonDetailViewModel(
       personFacade,
       authViewModel.currentUser,
+    );
+    evaluationFormViewModel = EvaluationFormViewModel(
+      evaluationFacade,
+      personFacade,
     );
 
     studentFormViewModel = StudentFormViewModel(studentFacade);
