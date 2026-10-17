@@ -16,6 +16,18 @@ import '../../features/auth/domain/usecases/sign_up_usecase.dart';
 import '../../features/auth/facade/auth_usecases_facade.dart';
 import '../../features/auth/presentation/viewmodels/auth_viewmodel.dart';
 
+// --- Evaluation ---
+import '../../features/evaluation/data/repositories/evaluation_repository_impl.dart';
+import '../../features/evaluation/data/services/evaluation_firestore_service.dart';
+import '../../features/evaluation/domain/repositories/evaluation_repository.dart';
+import '../../features/evaluation/domain/usecases/check_self_evaluation_usecase.dart';
+import '../../features/evaluation/domain/usecases/evaluation_preconditions.dart';
+import '../../features/evaluation/domain/usecases/get_my_evaluation_usecase.dart';
+import '../../features/evaluation/domain/usecases/get_my_evaluations_usecase.dart';
+import '../../features/evaluation/domain/usecases/register_evaluation_usecase.dart';
+import '../../features/evaluation/domain/usecases/update_evaluation_usecase.dart';
+import '../../features/evaluation/facade/evaluation_usecases_facade.dart';
+
 // --- Person ---
 import '../../features/person/data/repositories/person_repository_impl.dart';
 import '../../features/person/data/services/person_firestore_service.dart';
@@ -68,9 +80,11 @@ class InjectionContainer {
   late final RequireAuthenticatedUser _requireUser;
   late final AuthUseCasesFacade authFacade;
 
-  // --- Person ---
+  // --- Person / Evaluation ---
   late final PersonRepository _personRepository;
   late final PersonUseCasesFacade personFacade;
+  late final EvaluationRepository _evaluationRepository;
+  late final EvaluationUseCasesFacade evaluationFacade;
 
   // --- Student ---
   late final StudentLocalService _studentLocalService;
@@ -101,7 +115,14 @@ class InjectionContainer {
 
     _storageHelper = LocalStorageHelper();
 
+    // Repositories primeiro: os use cases de uma feature podem
+    // depender do repository de outra (ex.: remover pessoa).
+    _personRepository = PersonRepositoryImpl(PersonFirestoreService());
+    _evaluationRepository =
+        EvaluationRepositoryImpl(EvaluationFirestoreService());
+
     _initAuth();
+    _initEvaluation();
     _initPerson();
     _initStudent();
     _initTheme();
@@ -128,13 +149,28 @@ class InjectionContainer {
     );
   }
 
-  void _initPerson() {
-    _personRepository = PersonRepositoryImpl(PersonFirestoreService());
+  void _initEvaluation() {
+    final preconditions =
+        EvaluationPreconditions(_requireUser, _personRepository);
 
+    evaluationFacade = EvaluationUseCasesFacade(
+      register: RegisterEvaluationUseCase(_evaluationRepository, preconditions),
+      update: UpdateEvaluationUseCase(_evaluationRepository, preconditions),
+      getMine: GetMyEvaluationUseCase(_evaluationRepository, _requireUser),
+      getAllMine: GetMyEvaluationsUseCase(_evaluationRepository, _requireUser),
+      checkSelf: CheckSelfEvaluationUseCase(_requireUser, _personRepository),
+    );
+  }
+
+  void _initPerson() {
     personFacade = PersonUseCasesFacade(
       create: CreatePersonUseCase(_personRepository, _requireUser),
       update: UpdatePersonUseCase(_personRepository, _requireUser),
-      delete: DeletePersonUseCase(_personRepository, _requireUser),
+      delete: DeletePersonUseCase(
+        _personRepository,
+        _evaluationRepository,
+        _requireUser,
+      ),
       getAll: GetAllPeopleUseCase(_personRepository),
       getById: GetPersonByIdUseCase(_personRepository),
     );
