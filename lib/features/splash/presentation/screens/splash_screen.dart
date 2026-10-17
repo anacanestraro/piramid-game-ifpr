@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  // Rota a retomar após verificar a sessão (ex.: a tela onde foi dado F5).
+  final String? redirectTo;
+
+  const SplashScreen({super.key, this.redirectTo});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  // Tempo mínimo para a Splash não "piscar" quando a verificação é rápida.
-  static const _minimumDisplayTime = Duration(milliseconds: 1500);
+  // Primeira abertura: dá tempo de ver a apresentação.
+  static const _firstVisitDisplayTime = Duration(milliseconds: 1500);
+  // Usuário já conhecido (cache): abertura mais rápida.
+  static const _returningDisplayTime = Duration(milliseconds: 800);
 
   @override
   void initState() {
@@ -25,19 +31,29 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _checkSessionAndNavigate() async {
     final authViewModel = InjectionContainer.instance.authViewModel;
 
-    // Verifica a sessão e espera o tempo mínimo ao mesmo tempo.
+    // 1) Cache local: só para personalizar a Splash.
+    await authViewModel.loadCachedUserCommand.execute();
+    final isReturning = authViewModel.cachedUser.value != null;
+
+    // 2) Firebase: decide de verdade se a sessão é válida.
     await Future.wait([
       authViewModel.checkAuthCommand.execute(),
-      Future.delayed(_minimumDisplayTime),
+      Future.delayed(
+        isReturning ? _returningDisplayTime : _firstVisitDisplayTime,
+      ),
     ]);
 
     if (!mounted) return;
 
-    final destination = authViewModel.isAuthenticated.value
-        ? AppRoutes.home
-        : AppRoutes.login;
+    if (!authViewModel.isAuthenticated.value) {
+      context.go(AppRoutes.login);
+      return;
+    }
 
-    context.go(destination);
+    final redirect = widget.redirectTo;
+    context.go(
+      AppRoutes.isSafeRedirect(redirect) ? redirect! : AppRoutes.home,
+    );
   }
 
   @override
@@ -45,6 +61,7 @@ class _SplashScreenState extends State<SplashScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textDim = isDark ? AppColors.darkTextDim : AppColors.lightTextDim;
     final surface2 = isDark ? AppColors.darkSurface2 : AppColors.lightSurface2;
+    final authViewModel = InjectionContainer.instance.authViewModel;
 
     return Scaffold(
       body: Center(
@@ -53,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icone do app (trofeu dourado em fundo verde com gradiente)
+              // Ícone do app (troféu dourado em fundo verde com gradiente)
               Container(
                 width: 132,
                 height: 132,
@@ -126,14 +143,23 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               const SizedBox(height: 18),
 
-              Text(
-                'VERIFICANDO SUA SESSÃO…',
-                style: AppTextStyles.jakarta(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: textDim,
-                  letterSpacing: 1.5,
-                ),
+              SignalBuilder(
+                builder: (context) {
+                  final cached = authViewModel.cachedUser.value;
+
+                  return Text(
+                    cached == null
+                        ? 'VERIFICANDO SUA SESSÃO…'
+                        : 'BEM-VINDO DE VOLTA, ${cached.name.toUpperCase()}',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.jakarta(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: textDim,
+                      letterSpacing: 1.5,
+                    ),
+                  );
+                },
               ),
             ],
           ),

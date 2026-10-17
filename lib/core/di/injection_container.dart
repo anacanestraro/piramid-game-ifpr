@@ -5,8 +5,10 @@ import '../storage/local_storage_helper.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/data/services/firebase_auth_service.dart';
 import '../../features/auth/data/services/firebase_google_auth_service.dart';
+import '../../features/auth/data/services/session_shared_prefs_service.dart';
 import '../../features/auth/data/services/user_firestore_service.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/domain/usecases/get_cached_user_usecase.dart';
 import '../../features/auth/domain/usecases/get_current_user_usecase.dart';
 import '../../features/auth/domain/usecases/require_authenticated_user.dart';
 import '../../features/auth/domain/usecases/sign_in_usecase.dart';
@@ -101,6 +103,7 @@ class InjectionContainer {
       FirebaseAuthService(),
       FirebaseGoogleAuthService(),
       UserFirestoreService(),
+      SessionSharedPrefsService(_storageHelper),
     );
     _personRepository = PersonRepositoryImpl(PersonFirestoreService());
     _evaluationRepository =
@@ -123,6 +126,7 @@ class InjectionContainer {
       signIn: SignInUseCase(_authRepository),
       signInWithGoogle: SignInWithGoogleUseCase(_authRepository),
       getCurrentUser: GetCurrentUserUseCase(_authRepository),
+      getCachedUser: GetCachedUserUseCase(_authRepository),
       signOut: SignOutUseCase(_authRepository),
     );
   }

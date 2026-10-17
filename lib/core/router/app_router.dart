@@ -25,7 +25,9 @@ class AppRouter {
     routes: [
       GoRoute(
         path: AppRoutes.splash,
-        builder: (context, state) => const SplashScreen(),
+        builder: (context, state) => SplashScreen(
+          redirectTo: state.uri.queryParameters[AppRoutes.fromParam],
+        ),
       ),
       GoRoute(
         path: AppRoutes.login,
@@ -120,16 +122,24 @@ class AppRouter {
   // Retornar null = segue para a rota pedida; retornar um caminho = desvia.
   static String? _guard(BuildContext context, GoRouterState state) {
     final location = state.matchedLocation;
-    final isPublic = AppRoutes.publicRoutes.contains(location);
-    final isAuthenticated =
-        InjectionContainer.instance.authViewModel.isAuthenticated.value;
+    final auth = InjectionContainer.instance.authViewModel;
 
-    // Sem sessão tentando acessar área protegida -> login.
+    // 1) Sessão ainda não verificada (ex.: F5 ou link aberto direto):
+    //    passa pela Splash, que consulta o Firebase e depois retoma a rota.
+    if (!auth.sessionChecked.value) {
+      if (location == AppRoutes.splash) return null;
+      return AppRoutes.splashThen(state.uri.toString());
+    }
+
+    final isPublic = AppRoutes.publicRoutes.contains(location);
+    final isAuthenticated = auth.isAuthenticated.value;
+
+    // 2) Sem sessão tentando acessar área protegida -> login.
     if (!isAuthenticated && !isPublic) {
       return AppRoutes.login;
     }
 
-    // Já logado tentando abrir login/criar conta -> início.
+    // 3) Já logado tentando abrir login/criar conta -> início.
     final isAuthScreen =
         location == AppRoutes.login || location == AppRoutes.signUp;
     if (isAuthenticated && isAuthScreen) {
