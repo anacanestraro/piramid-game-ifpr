@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
+// Identidade visual do app (arquivo próprio de tema, seção 2 da spec).
 class AppTheme {
   static ThemeData get light => _buildTheme(
         brightness: Brightness.light,
@@ -31,6 +32,7 @@ class AppTheme {
   }) {
     final base = ThemeData(brightness: brightness);
     final isDark = brightness == Brightness.dark;
+    final greenSoft = AppColors.green.withValues(alpha: isDark ? .25 : .12);
 
     return base.copyWith(
       scaffoldBackgroundColor: bg,
@@ -39,10 +41,10 @@ class AppTheme {
         primary: AppColors.green,
         onPrimary: Colors.white,
         secondary: AppColors.gold,
-        secondaryContainer: AppColors.green.withOpacity(isDark ? .25 : .12),
+        secondaryContainer: greenSoft,
         onSecondaryContainer: AppColors.green,
         tertiary: AppColors.green,
-        tertiaryContainer: AppColors.green.withOpacity(isDark ? .25 : .12),
+        tertiaryContainer: greenSoft,
         onTertiaryContainer: AppColors.green,
         error: AppColors.red,
         surface: surface,
@@ -68,7 +70,7 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
-        indicatorColor: AppColors.green.withOpacity(isDark ? .25 : .12),
+        indicatorColor: greenSoft,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
@@ -89,7 +91,9 @@ class AppTheme {
         headerBackgroundColor: AppColors.green,
         headerForegroundColor: Colors.white,
         todayBorder: const BorderSide(color: AppColors.green),
-        dayOverlayColor: WidgetStateProperty.all(AppColors.green.withOpacity(.1)),
+        dayOverlayColor: WidgetStateProperty.all(
+          AppColors.green.withValues(alpha: .1),
+        ),
         dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return AppColors.green;
           return null;
@@ -98,7 +102,9 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) return Colors.white;
           return text;
         }),
-        yearOverlayColor: WidgetStateProperty.all(AppColors.green.withOpacity(.1)),
+        yearOverlayColor: WidgetStateProperty.all(
+          AppColors.green.withValues(alpha: .1),
+        ),
         yearBackgroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return AppColors.green;
           return null;

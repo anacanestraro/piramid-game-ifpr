@@ -3,21 +3,18 @@ import '../domain/entities/app_theme_mode.dart';
 import '../domain/usecases/get_theme_mode_usecase.dart';
 import '../domain/usecases/toggle_theme_usecase.dart';
 
+// Agrupa os use cases de tema (seção 4.3: alterar tema do aplicativo).
 class ThemeUseCasesFacade {
   final GetThemeModeUseCase _getThemeMode;
   final ToggleThemeUseCase _toggleTheme;
 
   ThemeUseCasesFacade({
-    required GetThemeModeUseCase getThemeMode,
-    required ToggleThemeUseCase toggleTheme,
-  })  : _getThemeMode = getThemeMode,
-        _toggleTheme = toggleTheme;
+    required this._getThemeMode,
+    required this._toggleTheme,
+  });
 
-  Future<Result<AppThemeMode>> getThemeMode() {
-    return _getThemeMode();
-  }
+  Future<Result<AppThemeMode>> getThemeMode() => _getThemeMode();
 
-  Future<Result<AppThemeMode>> toggleTheme(AppThemeMode currentMode) {
-    return _toggleTheme(currentMode);
-  }
+  Future<Result<AppThemeMode>> toggleTheme(AppThemeMode currentMode) =>
+      _toggleTheme(currentMode);
 }
