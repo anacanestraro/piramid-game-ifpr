@@ -1,0 +1,142 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Funções auxiliares ----------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function personPath(personId) {
+      return /databases/$(database)/documents/people/$(personId);
+    }
+
+    function validScore(value) {
+      return value is int && value >= 1 && value <= 5;
+    }
+
+    // ---------- users ----------
+    // Perfil do usuário autenticado. Documento = uid do Firebase Auth.
+
+    match /users/{userId} {
+      allow read: if signedIn() && uid() == userId;
+
+      allow create, update: if signedIn()
+        && uid() == userId
+        && incoming().keys().hasOnly(['name', 'email', 'photoUrl', 'provider'])
+        && incoming().name is string
+        && incoming().email is string
+        && (incoming().get('photoUrl', null) == null
+            || incoming().photoUrl is string)
+        && incoming().provider in ['emailPassword', 'google'];
+
+      allow delete: if false;
+    }
+
+    // ---------- people ----------
+    // Pessoas avaliáveis. Todos os logados leem; só o criador altera/remove.
+
+    function validPerson() {
+      let p = incoming();
+      return p.keys().hasOnly([
+          'name', 'nickname', 'course', 'classYear',
+          'birthDate', 'createdBy', 'linkedUserUid'
+        ])
+        && p.keys().hasAll([
+          'name', 'nickname', 'course', 'classYear',
+          'birthDate', 'createdBy'
+        ])
+        && p.name is string && p.name.size() > 0 && p.name.size() <= 100
+        && p.nickname is string && p.nickname.size() > 0
+        && p.nickname.size() <= 50
+        && p.course in ['info', 'mec', 'mamb', 'prod', 'tads', 'tga']
+        && p.classYear is int && p.classYear >= 1998 && p.classYear <= 2026
+        && p.birthDate is timestamp && p.birthDate <= request.time
+        // Quem grava é sempre o dono do cadastro.
+        && p.createdBy == uid()
+        // Só é possível vincular a pessoa à própria conta.
+        && p.get('linkedUserUid', null) in [null, uid()];
+    }
+
+    match /people/{personId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && validPerson();
+      allow update: if signedIn()
+        && resource.data.createdBy == uid()
+        && validPerson();
+      allow delete: if signedIn() && resource.data.createdBy == uid();
+    }
+
+    // ---------- evaluations ----------
+    // Uma avaliação por usuário/pessoa (id = "{uid}_{personId}").
+
+    function validEvaluation(evaluationId) {
+      let e = incoming();
+      let fields = [
+        'evaluatorUid', 'personId', 'totalScore', 'evaluatedAt',
+        'resenha', 'presencaVip', 'aura', 'modoParceiro', 'carismaNatural',
+        'humorDeMilhoes', 'energiaDeGrupo', 'criatividadeCaotica',
+        'modoAtleta', 'talentoDePalco', 'dripEscolar', 'coracaoDeDorama',
+        'queridinhoDosProfessores', 'cerebroTurbo', 'caosControlado'
+      ];
+      return e.keys().hasOnly(fields)
+        && e.keys().hasAll(fields)
+        // Quem avalia é o usuário logado.
+        && e.evaluatorUid == uid()
+        // Garante "usuário + pessoa = uma avaliação".
+        && evaluationId == uid() + '_' + e.personId
+        // A pessoa precisa existir e não pode ser o próprio avaliador.
+        && exists(personPath(e.personId))
+        && get(personPath(e.personId)).data.get('linkedUserUid', null) != uid()
+        // 15 notas de 1 a 5.
+        && validScore(e.resenha) && validScore(e.presencaVip)
+        && validScore(e.aura) && validScore(e.modoParceiro)
+        && validScore(e.carismaNatural) && validScore(e.humorDeMilhoes)
+        && validScore(e.energiaDeGrupo) && validScore(e.criatividadeCaotica)
+        && validScore(e.modoAtleta) && validScore(e.talentoDePalco)
+        && validScore(e.dripEscolar) && validScore(e.coracaoDeDorama)
+        && validScore(e.queridinhoDosProfessores)
+        && validScore(e.cerebroTurbo) && validScore(e.caosControlado)
+        // A pontuação total precisa ser a soma das notas.
+        && e.totalScore == e.resenha + e.presencaVip + e.aura
+          + e.modoParceiro + e.carismaNatural + e.humorDeMilhoes
+          + e.energiaDeGrupo + e.criatividadeCaotica + e.modoAtleta
+          + e.talentoDePalco + e.dripEscolar + e.coracaoDeDorama
+          + e.queridinhoDosProfessores + e.cerebroTurbo + e.caosControlado
+        && e.evaluatedAt is timestamp;
+    }
+
+    match /evaluations/{evaluationId} {
+      // Todos os logados leem: o ranking global usa todas as avaliações.
+      allow read: if signedIn();
+
+      allow create: if signedIn() && validEvaluation(evaluationId);
+
+      allow update: if signedIn()
+        && resource.data.evaluatorUid == uid()
+        && resource.data.personId == incoming().personId
+        && validEvaluation(evaluationId);
+
+      // O avaliador remove a própria avaliação; o criador da pessoa remove
+      // as avaliações dela. Se a pessoa já foi removida, a avaliação é
+      // órfã e qualquer usuário logado pode apagá-la (remoção em cascata).
+      allow delete: if signedIn() && (
+        resource.data.evaluatorUid == uid()
+        || !exists(personPath(resource.data.personId))
+        || get(personPath(resource.data.personId)).data.createdBy == uid()
+      );
+    }
+
+    // Qualquer outra coleção: tudo bloqueado (padrão do Firestore).
+  }
+}
