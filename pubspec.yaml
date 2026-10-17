@@ -27,8 +27,7 @@ dependencies:
   cloud_firestore: ^6.10.0   # banco de dados remoto
   google_sign_in: ^7.2.0     # fluxo de login com conta Google
 
-  # --- Utilitários ---
-  uuid: ^4.5.3               # será removido no passo 4 (Firestore gera os ids)
+  # --- Visual ---
   google_fonts: ^8.1.0
 
 dev_dependencies:

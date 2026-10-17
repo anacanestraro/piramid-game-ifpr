@@ -47,28 +47,11 @@ import '../../features/person/presentation/viewmodels/person_form_viewmodel.dart
 import '../../features/ranking/domain/usecases/calculate_global_ranking_usecase.dart';
 import '../../features/ranking/domain/usecases/calculate_personal_ranking_usecase.dart';
 import '../../features/ranking/facade/ranking_usecases_facade.dart';
-
-// --- Student (será removido no 8.3) ---
-import '../../features/student/data/services/student_local_service.dart';
-import '../../features/student/data/services/student_shared_prefs_service.dart';
-import '../../features/student/data/repositories/student_repository_impl.dart';
-import '../../features/student/domain/repositories/student_repository.dart';
-import '../../features/student/domain/usecases/create_student_usecase.dart';
-import '../../features/student/domain/usecases/update_student_usecase.dart';
-import '../../features/student/domain/usecases/delete_student_usecase.dart';
-import '../../features/student/domain/usecases/get_all_students_usecase.dart';
-import '../../features/student/domain/usecases/get_student_by_id_usecase.dart';
-import '../../features/student/domain/usecases/calculate_ranking_usecase.dart';
-import '../../features/student/facade/student_usecases_facade.dart';
-import '../../features/student/presentation/viewmodels/student_form_viewmodel.dart';
-import '../../features/student/presentation/viewmodels/ranking_viewmodel.dart';
-import '../../features/student/presentation/viewmodels/student_detail_viewmodel.dart';
+import '../../features/ranking/presentation/viewmodels/ranking_viewmodel.dart';
 
 // --- Theme ---
-import '../../features/theme_settings/data/services/theme_local_service.dart';
 import '../../features/theme_settings/data/services/theme_shared_prefs_service.dart';
 import '../../features/theme_settings/data/repositories/theme_repository_impl.dart';
-import '../../features/theme_settings/domain/repositories/theme_repository.dart';
 import '../../features/theme_settings/domain/usecases/get_theme_mode_usecase.dart';
 import '../../features/theme_settings/domain/usecases/toggle_theme_usecase.dart';
 import '../../features/theme_settings/facade/theme_usecases_facade.dart';
@@ -81,26 +64,17 @@ class InjectionContainer {
 
   late final LocalStorageHelper _storageHelper;
 
-  // --- Auth ---
+  // --- Repositories compartilhados entre features ---
   late final AuthRepository _authRepository;
-  late final RequireAuthenticatedUser _requireUser;
-  late final AuthUseCasesFacade authFacade;
-
-  // --- Person / Evaluation / Ranking ---
   late final PersonRepository _personRepository;
-  late final PersonUseCasesFacade personFacade;
   late final EvaluationRepository _evaluationRepository;
+  late final RequireAuthenticatedUser _requireUser;
+
+  // --- Facades ---
+  late final AuthUseCasesFacade authFacade;
+  late final PersonUseCasesFacade personFacade;
   late final EvaluationUseCasesFacade evaluationFacade;
   late final RankingUseCasesFacade rankingFacade;
-
-  // --- Student ---
-  late final StudentLocalService _studentLocalService;
-  late final StudentRepository _studentRepository;
-  late final StudentUseCasesFacade studentFacade;
-
-  // --- Theme ---
-  late final ThemeLocalService _themeLocalService;
-  late final ThemeRepository _themeRepository;
   late final ThemeUseCasesFacade themeFacade;
 
   // --- ViewModels ---
@@ -109,9 +83,7 @@ class InjectionContainer {
   late final PersonFormViewModel personFormViewModel;
   late final PersonDetailViewModel personDetailViewModel;
   late final EvaluationFormViewModel evaluationFormViewModel;
-  late final StudentFormViewModel studentFormViewModel;
   late final RankingViewModel rankingViewModel;
-  late final StudentDetailViewModel studentDetailViewModel;
   late final ThemeViewModel themeViewModel;
 
   bool _initialized = false;
@@ -125,15 +97,20 @@ class InjectionContainer {
 
     // Repositories primeiro: os use cases de uma feature podem
     // depender do repository de outra (ex.: remover pessoa, ranking).
+    _authRepository = AuthRepositoryImpl(
+      FirebaseAuthService(),
+      FirebaseGoogleAuthService(),
+      UserFirestoreService(),
+    );
     _personRepository = PersonRepositoryImpl(PersonFirestoreService());
     _evaluationRepository =
         EvaluationRepositoryImpl(EvaluationFirestoreService());
+    _requireUser = RequireAuthenticatedUser(_authRepository);
 
     _initAuth();
-    _initEvaluation();
     _initPerson();
+    _initEvaluation();
     _initRanking();
-    _initStudent();
     _initTheme();
     _initViewModels();
 
@@ -141,33 +118,12 @@ class InjectionContainer {
   }
 
   void _initAuth() {
-    _authRepository = AuthRepositoryImpl(
-      FirebaseAuthService(),
-      FirebaseGoogleAuthService(),
-      UserFirestoreService(),
-    );
-
-    _requireUser = RequireAuthenticatedUser(_authRepository);
-
     authFacade = AuthUseCasesFacade(
       signUp: SignUpUseCase(_authRepository),
       signIn: SignInUseCase(_authRepository),
       signInWithGoogle: SignInWithGoogleUseCase(_authRepository),
       getCurrentUser: GetCurrentUserUseCase(_authRepository),
       signOut: SignOutUseCase(_authRepository),
-    );
-  }
-
-  void _initEvaluation() {
-    final preconditions =
-        EvaluationPreconditions(_requireUser, _personRepository);
-
-    evaluationFacade = EvaluationUseCasesFacade(
-      register: RegisterEvaluationUseCase(_evaluationRepository, preconditions),
-      update: UpdateEvaluationUseCase(_evaluationRepository, preconditions),
-      getMine: GetMyEvaluationUseCase(_evaluationRepository, _requireUser),
-      getAllMine: GetMyEvaluationsUseCase(_evaluationRepository, _requireUser),
-      checkSelf: CheckSelfEvaluationUseCase(_requireUser, _personRepository),
     );
   }
 
@@ -182,6 +138,19 @@ class InjectionContainer {
       ),
       getAll: GetAllPeopleUseCase(_personRepository),
       getById: GetPersonByIdUseCase(_personRepository),
+    );
+  }
+
+  void _initEvaluation() {
+    final preconditions =
+        EvaluationPreconditions(_requireUser, _personRepository);
+
+    evaluationFacade = EvaluationUseCasesFacade(
+      register: RegisterEvaluationUseCase(_evaluationRepository, preconditions),
+      update: UpdateEvaluationUseCase(_evaluationRepository, preconditions),
+      getMine: GetMyEvaluationUseCase(_evaluationRepository, _requireUser),
+      getAllMine: GetMyEvaluationsUseCase(_evaluationRepository, _requireUser),
+      checkSelf: CheckSelfEvaluationUseCase(_requireUser, _personRepository),
     );
   }
 
@@ -200,25 +169,14 @@ class InjectionContainer {
     );
   }
 
-  void _initStudent() {
-    _studentLocalService = StudentSharedPrefsService(_storageHelper);
-    _studentRepository = StudentRepositoryImpl(_studentLocalService);
-    studentFacade = StudentUseCasesFacade(
-      createStudent: CreateStudentUseCase(_studentRepository),
-      updateStudent: UpdateStudentUseCase(_studentRepository),
-      deleteStudent: DeleteStudentUseCase(_studentRepository),
-      getAllStudents: GetAllStudentsUseCase(_studentRepository),
-      getStudentById: GetStudentByIdUseCase(_studentRepository),
-      calculateRanking: CalculateRankingUseCase(_studentRepository),
-    );
-  }
-
   void _initTheme() {
-    _themeLocalService = ThemeSharedPrefsService(_storageHelper);
-    _themeRepository = ThemeRepositoryImpl(_themeLocalService);
+    final themeRepository = ThemeRepositoryImpl(
+      ThemeSharedPrefsService(_storageHelper),
+    );
+
     themeFacade = ThemeUseCasesFacade(
-      getThemeMode: GetThemeModeUseCase(_themeRepository),
-      toggleTheme: ToggleThemeUseCase(_themeRepository),
+      getThemeMode: GetThemeModeUseCase(themeRepository),
+      toggleTheme: ToggleThemeUseCase(themeRepository),
     );
   }
 
@@ -235,10 +193,7 @@ class InjectionContainer {
       evaluationFacade,
       personFacade,
     );
-
-    studentFormViewModel = StudentFormViewModel(studentFacade);
-    rankingViewModel = RankingViewModel(studentFacade);
-    studentDetailViewModel = StudentDetailViewModel(studentFacade);
+    rankingViewModel = RankingViewModel(rankingFacade);
     themeViewModel = ThemeViewModel(themeFacade);
   }
 }
