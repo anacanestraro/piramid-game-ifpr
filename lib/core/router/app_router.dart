@@ -5,9 +5,11 @@ import '../../features/about/presentation/screens/about_screen.dart';
 import '../../features/auth/presentation/screens/login/login_screen.dart';
 import '../../features/auth/presentation/screens/sign_up/sign_up_screen.dart';
 import '../../features/evaluation/presentation/screens/evaluation_form/evaluation_form_screen.dart';
+import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/person/presentation/screens/people_list/people_list_screen.dart';
 import '../../features/person/presentation/screens/person_detail/person_detail_screen.dart';
 import '../../features/person/presentation/screens/person_form/person_form_screen.dart';
+import '../../features/ranking/presentation/screens/ranking/ranking_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import 'app_routes.dart';
 import 'app_shell.dart';
@@ -64,7 +66,25 @@ class AppRouter {
           return AppShell(navigationShell: navigationShell);
         },
         branches: [
-          // Aba: Pessoas (lista + detalhes)
+          // Aba 0: Início
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.home,
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+          // Aba 1: Ranking (pessoal e global)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.ranking,
+                builder: (context, state) => const RankingScreen(),
+              ),
+            ],
+          ),
+          // Aba 2: Pessoas (lista + detalhes)
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -82,7 +102,7 @@ class AppRouter {
               ),
             ],
           ),
-          // Aba: Sobre
+          // Aba 3: Sobre
           StatefulShellBranch(
             routes: [
               GoRoute(

@@ -6,20 +6,19 @@ class AppRoutes {
   static const login = '/login';
   static const signUp = '/criar-conta';
 
-  // --- Pessoas ---
+  // --- Abas ---
+  static const home = '/inicio';
+  static const ranking = '/ranking';
   static const people = '/pessoas';
+  static const about = '/sobre';
+
+  // --- Pessoas ---
   static const newPerson = '/pessoas/nova';
   static String personDetail(String id) => '/pessoas/$id';
   static String editPerson(String id) => '/pessoas/$id/editar';
 
   // --- Avaliações ---
   static String evaluatePerson(String personId) => '/pessoas/$personId/avaliar';
-
-  static const about = '/sobre';
-
-  // Tela inicial após o login.
-  // Temporariamente a lista de pessoas; volta a ser o Início no passo 8.
-  static const home = people;
 
   // Rotas acessíveis sem estar autenticado.
   static const publicRoutes = {splash, login, signUp};

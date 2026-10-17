@@ -13,11 +13,19 @@ class AppShell extends StatelessWidget {
 
   const AppShell({super.key, required this.navigationShell});
 
-  static const _peopleTab = 0;
+  static const _homeTab = 0;
+  static const _rankingTab = 1;
+  static const _peopleTab = 2;
 
   void _onTap(int index) {
-    if (index == _peopleTab) {
-      InjectionContainer.instance.peopleListViewModel.refresh();
+    final container = InjectionContainer.instance;
+
+    // Recarrega o que a aba mostra, para refletir avaliações recentes.
+    if (index == _homeTab || index == _rankingTab) {
+      container.rankingViewModel.refresh();
+    }
+    if (index == _homeTab || index == _peopleTab) {
+      container.peopleListViewModel.refresh();
     }
 
     navigationShell.goBranch(
@@ -44,6 +52,14 @@ class AppShell extends StatelessWidget {
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: _onTap,
         destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_rounded),
+            label: 'Início',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.leaderboard_rounded),
+            label: 'Ranking',
+          ),
           NavigationDestination(
             icon: Icon(Icons.groups_rounded),
             label: 'Pessoas',
@@ -140,13 +156,16 @@ class _LogoutButton extends StatelessWidget {
 
     if (!confirmed || !context.mounted) return;
 
-    final viewModel = InjectionContainer.instance.authViewModel;
+    final container = InjectionContainer.instance;
+    final viewModel = container.authViewModel;
     await viewModel.logoutCommand.execute();
 
     if (!context.mounted) return;
 
     final state = viewModel.logoutCommand.state.value;
     if (state.isSuccess) {
+      // O próximo usuário não deve ver o ranking pessoal de quem saiu.
+      container.rankingViewModel.clear();
       context.go(AppRoutes.login);
     } else if (state.isError) {
       AppFeedback.showError(context, state.errorMessage);
