@@ -43,7 +43,12 @@ import '../../features/person/presentation/viewmodels/people_list_viewmodel.dart
 import '../../features/person/presentation/viewmodels/person_detail_viewmodel.dart';
 import '../../features/person/presentation/viewmodels/person_form_viewmodel.dart';
 
-// --- Student (será removido no passo 8) ---
+// --- Ranking ---
+import '../../features/ranking/domain/usecases/calculate_global_ranking_usecase.dart';
+import '../../features/ranking/domain/usecases/calculate_personal_ranking_usecase.dart';
+import '../../features/ranking/facade/ranking_usecases_facade.dart';
+
+// --- Student (será removido no 8.3) ---
 import '../../features/student/data/services/student_local_service.dart';
 import '../../features/student/data/services/student_shared_prefs_service.dart';
 import '../../features/student/data/repositories/student_repository_impl.dart';
@@ -81,11 +86,12 @@ class InjectionContainer {
   late final RequireAuthenticatedUser _requireUser;
   late final AuthUseCasesFacade authFacade;
 
-  // --- Person / Evaluation ---
+  // --- Person / Evaluation / Ranking ---
   late final PersonRepository _personRepository;
   late final PersonUseCasesFacade personFacade;
   late final EvaluationRepository _evaluationRepository;
   late final EvaluationUseCasesFacade evaluationFacade;
+  late final RankingUseCasesFacade rankingFacade;
 
   // --- Student ---
   late final StudentLocalService _studentLocalService;
@@ -118,7 +124,7 @@ class InjectionContainer {
     _storageHelper = LocalStorageHelper();
 
     // Repositories primeiro: os use cases de uma feature podem
-    // depender do repository de outra (ex.: remover pessoa).
+    // depender do repository de outra (ex.: remover pessoa, ranking).
     _personRepository = PersonRepositoryImpl(PersonFirestoreService());
     _evaluationRepository =
         EvaluationRepositoryImpl(EvaluationFirestoreService());
@@ -126,6 +132,7 @@ class InjectionContainer {
     _initAuth();
     _initEvaluation();
     _initPerson();
+    _initRanking();
     _initStudent();
     _initTheme();
     _initViewModels();
@@ -175,6 +182,21 @@ class InjectionContainer {
       ),
       getAll: GetAllPeopleUseCase(_personRepository),
       getById: GetPersonByIdUseCase(_personRepository),
+    );
+  }
+
+  void _initRanking() {
+    rankingFacade = RankingUseCasesFacade(
+      personal: CalculatePersonalRankingUseCase(
+        _evaluationRepository,
+        _personRepository,
+        _requireUser,
+      ),
+      global: CalculateGlobalRankingUseCase(
+        _evaluationRepository,
+        _personRepository,
+        _requireUser,
+      ),
     );
   }
 
