@@ -12,6 +12,9 @@ class AppRoutes {
   static String personDetail(String id) => '/pessoas/$id';
   static String editPerson(String id) => '/pessoas/$id/editar';
 
+  // --- Avaliações ---
+  static String evaluatePerson(String personId) => '/pessoas/$personId/avaliar';
+
   static const about = '/sobre';
 
   // Tela inicial após o login.

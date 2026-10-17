@@ -4,6 +4,7 @@ import '../di/injection_container.dart';
 import '../../features/about/presentation/screens/about_screen.dart';
 import '../../features/auth/presentation/screens/login/login_screen.dart';
 import '../../features/auth/presentation/screens/sign_up/sign_up_screen.dart';
+import '../../features/evaluation/presentation/screens/evaluation_form/evaluation_form_screen.dart';
 import '../../features/person/presentation/screens/people_list/people_list_screen.dart';
 import '../../features/person/presentation/screens/person_detail/person_detail_screen.dart';
 import '../../features/person/presentation/screens/person_form/person_form_screen.dart';
@@ -33,8 +34,8 @@ class AppRouter {
         builder: (context, state) => const SignUpScreen(),
       ),
 
-      // Formulário em tela cheia (por cima das abas).
-      // Declarado antes do shell para "/pessoas/nova" não ser
+      // Telas em tela cheia (por cima das abas).
+      // Declaradas antes do shell para "/pessoas/nova" não ser
       // interpretado como "/pessoas/:id".
       GoRoute(
         path: AppRoutes.newPerson,
@@ -47,6 +48,14 @@ class AppRouter {
         builder: (context, state) {
           final id = state.pathParameters['id']!;
           return PersonFormScreen(personId: id);
+        },
+      ),
+      GoRoute(
+        path: '${AppRoutes.people}/:id/avaliar',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return EvaluationFormScreen(personId: id);
         },
       ),
 

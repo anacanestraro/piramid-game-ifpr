@@ -42,6 +42,10 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
     }
   }
 
+  void _evaluate() {
+    context.push(AppRoutes.evaluatePerson(widget.personId));
+  }
+
   void _edit() {
     context.push(AppRoutes.editPerson(widget.personId));
   }
@@ -50,8 +54,8 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
     final confirmed = await ConfirmDialog.show(
       context,
       title: 'Remover pessoa?',
-      message: '"${person.name}" será removida do app. '
-          'Essa ação não pode ser desfeita.',
+      message: '"${person.name}" e todas as avaliações recebidas por ela '
+          'serão removidas. Essa ação não pode ser desfeita.',
       confirmLabel: 'Remover',
       isDestructive: true,
     );
@@ -113,6 +117,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
               isCurrentUser: _viewModel.isCurrentUser.value,
               canManage: _viewModel.canManage.value,
               isRemoving: _viewModel.removePersonCommand.state.value.isRunning,
+              onEvaluate: _evaluate,
               onEdit: _edit,
               onRemove: () => _remove(person),
             );
@@ -128,6 +133,7 @@ class _DetailContent extends StatelessWidget {
   final bool isCurrentUser;
   final bool canManage;
   final bool isRemoving;
+  final VoidCallback onEvaluate;
   final VoidCallback onEdit;
   final VoidCallback onRemove;
 
@@ -136,6 +142,7 @@ class _DetailContent extends StatelessWidget {
     required this.isCurrentUser,
     required this.canManage,
     required this.isRemoving,
+    required this.onEvaluate,
     required this.onEdit,
     required this.onRemove,
   });
@@ -187,10 +194,28 @@ class _DetailContent extends StatelessWidget {
           value: AppDateFormat.short(person.birthDate),
         ),
         const SizedBox(height: 24),
+
+        // Avaliar: para todos, exceto a própria pessoa (seção 14.12).
+        if (isCurrentUser)
+          _Notice(
+            icon: Icons.block_rounded,
+            text: 'Este é o seu perfil. Você não pode avaliar a si mesmo.',
+          )
+        else
+          PrimaryButton(
+            label: 'Avaliar',
+            icon: Icons.star_rounded,
+            onPressed: isRemoving ? null : onEvaluate,
+          ),
+
+        const SizedBox(height: 10),
+
+        // Editar/remover: só para quem cadastrou.
         if (canManage) ...[
           PrimaryButton(
             label: 'Editar',
             icon: Icons.edit_rounded,
+            color: AppColors.greenDeep,
             onPressed: isRemoving ? null : onEdit,
           ),
           const SizedBox(height: 10),
@@ -202,13 +227,16 @@ class _DetailContent extends StatelessWidget {
             onPressed: onRemove,
           ),
         ] else
-          Text(
-            'Somente quem cadastrou esta pessoa pode editá-la ou removê-la.',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.jakarta(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w500,
-              color: dim,
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'Somente quem cadastrou esta pessoa pode editá-la ou removê-la.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.jakarta(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                color: dim,
+              ),
             ),
           ),
       ],
@@ -262,6 +290,39 @@ class _InfoTile extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Notice extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _Notice({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.gold.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.gold),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTextStyles.jakarta(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
