@@ -26,6 +26,11 @@ dependencies:
   firebase_auth: ^6.7.0      # autenticação (e-mail/senha e Google)
   cloud_firestore: ^6.10.0   # banco de dados remoto
   google_sign_in: ^7.2.0     # fluxo de login com conta Google
+  firebase_storage: ^13.6.0  # upload da foto de perfil (requer plano Blaze)
+
+  # --- Foto de perfil ---
+  image_picker: ^1.2.0       # escolher imagem da galeria
+  camera: ^0.12.0            # capturar foto pela câmera/webcam (inclusive no Chrome)
 
   # --- Visual ---
   google_fonts: ^8.1.0
