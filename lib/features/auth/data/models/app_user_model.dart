@@ -31,15 +31,22 @@ class AppUserModel extends AppUser {
     final email = user.email ?? '';
     final displayName = user.displayName?.trim() ?? '';
 
-    final isGoogle = user.providerData
-        .any((info) => info.providerId == _googleProviderId);
+    // Dados que a conta Google informou ao Firebase (null se não for Google).
+    final googleInfo = user.providerData
+        .where((info) => info.providerId == _googleProviderId)
+        .firstOrNull;
+    final isGoogle = googleInfo != null;
 
     return AppUserModel(
       uid: user.uid,
       // Cadastro por e-mail não tem nome: usa a parte antes do @.
       name: displayName.isNotEmpty ? displayName : email.split('@').first,
       email: email,
-      photoUrl: user.photoURL,
+      // Foto do perfil do Firebase (a trocada pelo usuário tem prioridade).
+      // Se estiver vazia, usa a foto da conta Google. Isso cobre contas
+      // criadas com e-mail e senha que depois entraram com Google: nesse
+      // caso o Firebase não copia a foto do Google para o perfil.
+      photoUrl: user.photoURL ?? googleInfo?.photoURL,
       provider: isGoogle
           ? AuthProviderType.google
           : AuthProviderType.emailPassword,

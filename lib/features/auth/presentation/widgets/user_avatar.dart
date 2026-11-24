@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -23,7 +24,10 @@ class UserAvatar extends StatelessWidget {
     final url = photoUrl;
     final initials = _InitialsCircle(name: name, size: size);
 
-    if (url == null || url.isEmpty) return initials;
+    if (url == null || url.isEmpty) {
+      if (kDebugMode) debugPrint('UserAvatar: "$name" está sem photoUrl');
+      return initials;
+    }
 
     return ClipOval(
       child: Image.network(
@@ -36,7 +40,11 @@ class UserAvatar extends StatelessWidget {
         webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
         loadingBuilder: (context, child, progress) =>
             progress == null ? child : initials,
-        errorBuilder: (context, error, stackTrace) => initials,
+        errorBuilder: (context, error, stackTrace) {
+          // Só em modo debug: ajuda a descobrir por que a foto não carregou.
+          if (kDebugMode) debugPrint('UserAvatar: erro ao carregar $url: $error');
+          return initials;
+        },
       ),
     );
   }

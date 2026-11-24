@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../../../core/result/result.dart';
@@ -10,10 +11,25 @@ class ProfilePhotoFirebaseStorageService implements ProfilePhotoStorageService {
   static const _usersFolder = 'users';
   static const _filePrefix = 'avatar_';
 
+  // Por quanto tempo o SDK pode repetir uma operação que falhou.
+  // O padrão do Firebase é de vários minutos (10 min para upload),
+  // o que deixa a tela "carregando" sem resposta quando o Storage
+  // não está disponível.
+  static const _maxRetryTime = Duration(seconds: 15);
+
+  // Limite total de espera de cada etapa, como garantia extra.
+  static const _timeout = Duration(seconds: 20);
+
+  static const _unavailableMessage = 'Não foi possível enviar a foto. '
+      'Verifique se o Firebase Storage está ativado.';
+
   final FirebaseStorage _storage;
 
   ProfilePhotoFirebaseStorageService({FirebaseStorage? storage})
-      : _storage = storage ?? FirebaseStorage.instance;
+      : _storage = storage ?? FirebaseStorage.instance {
+    _storage.setMaxUploadRetryTime(_maxRetryTime);
+    _storage.setMaxOperationRetryTime(_maxRetryTime);
+  }
 
   Reference _userFolder(String uid) => _storage.ref('$_usersFolder/$uid');
 
@@ -29,26 +45,45 @@ class ProfilePhotoFirebaseStorageService implements ProfilePhotoStorageService {
       final fileName = '$_filePrefix${DateTime.now().millisecondsSinceEpoch}';
       final reference = _userFolder(uid).child(fileName);
 
-      await reference.putData(
-        bytes,
-        SettableMetadata(contentType: contentType),
-      );
+      await _sendFile(reference, bytes, contentType);
 
-      final url = await reference.getDownloadURL();
+      final url = await reference.getDownloadURL().timeout(_timeout);
 
       await _deleteOldPhotos(uid, keep: fileName);
 
       return Result.success(url);
     } on FirebaseException catch (e) {
       return Result.failure(_mapError(e));
-    } catch (e) {
+    } on TimeoutException catch (e) {
       return Result.failure(
         Failure(
-          'Não foi possível enviar a foto. '
+          'O envio da foto demorou demais. '
           'Verifique se o Firebase Storage está ativado.',
           exception: e,
         ),
       );
+    } catch (e) {
+      return Result.failure(Failure(_unavailableMessage, exception: e));
+    }
+  }
+
+  // Envia o arquivo respeitando o tempo limite. Se estourar,
+  // cancela o envio para ele não continuar rodando em segundo plano.
+  Future<void> _sendFile(
+    Reference reference,
+    Uint8List bytes,
+    String contentType,
+  ) async {
+    final task = reference.putData(
+      bytes,
+      SettableMetadata(contentType: contentType),
+    );
+
+    try {
+      await task.timeout(_timeout);
+    } on TimeoutException {
+      await task.cancel();
+      rethrow;
     }
   }
 
@@ -57,11 +92,13 @@ class ProfilePhotoFirebaseStorageService implements ProfilePhotoStorageService {
   // perfil continua correto, então o erro é ignorado.
   Future<void> _deleteOldPhotos(String uid, {required String keep}) async {
     try {
-      final listing = await _userFolder(uid).listAll();
+      final listing = await _userFolder(uid).listAll().timeout(_timeout);
       final oldPhotos = listing.items.where((item) => item.name != keep);
       await Future.wait(oldPhotos.map((item) => item.delete()));
     } on FirebaseException {
       // Ignorado de propósito (ver comentário acima).
+    } on TimeoutException {
+      // Idem.
     }
   }
 
@@ -71,13 +108,14 @@ class ProfilePhotoFirebaseStorageService implements ProfilePhotoStorageService {
     final message = switch (e.code) {
       'unauthenticated' => 'Você precisa estar logado para trocar a foto.',
       'unauthorized' => 'Você não tem permissão para trocar esta foto.',
-      'retry-limit-exceeded' => 'Sem conexão com o servidor. Tente novamente.',
+      'retry-limit-exceeded' =>
+        'O servidor de fotos não respondeu. '
+            'Verifique se o Firebase Storage está ativado.',
       'quota-exceeded' => 'Limite de armazenamento atingido.',
       'bucket-not-found' ||
       'project-not-found' =>
         'O armazenamento de fotos (Firebase Storage) não está ativado.',
-      _ => 'Não foi possível enviar a foto. '
-          'Verifique se o Firebase Storage está ativado.',
+      _ => _unavailableMessage,
     };
 
     return Failure(message, exception: e);
