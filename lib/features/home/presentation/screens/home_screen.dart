@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/ui/primary_button.dart';
 import '../../../../core/utils/app_number_format.dart';
+import '../../../auth/presentation/widgets/profile_photo_button.dart';
 import '../../../ranking/domain/entities/ranking_entry.dart';
 import '../../../evaluation/domain/entities/popularity_tier.dart';
 
@@ -45,7 +46,11 @@ class _HomeScreenState extends State<HomeScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 40),
+                  // Foto de perfil: toque para trocar (galeria ou câmera).
+                  const Align(
+                    alignment: Alignment.centerRight,
+                    child: ProfilePhotoButton(size: 44),
+                  ),
                   const _Logo(),
                   const SizedBox(height: 16),
                   Text(

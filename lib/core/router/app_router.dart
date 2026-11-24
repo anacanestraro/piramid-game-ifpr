@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../di/injection_container.dart';
 import '../../features/about/presentation/screens/about_screen.dart';
+import '../../features/auth/presentation/screens/camera_capture/camera_capture_screen.dart';
 import '../../features/auth/presentation/screens/login/login_screen.dart';
 import '../../features/auth/presentation/screens/sign_up/sign_up_screen.dart';
 import '../../features/evaluation/presentation/screens/evaluation_form/evaluation_form_screen.dart';
@@ -61,6 +62,12 @@ class AppRouter {
           final id = state.pathParameters['id']!;
           return EvaluationFormScreen(personId: id);
         },
+      ),
+      // Captura da foto de perfil. Devolve a foto com context.pop().
+      GoRoute(
+        path: AppRoutes.cameraCapture,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const CameraCaptureScreen(),
       ),
 
       StatefulShellRoute.indexedStack(

@@ -20,6 +20,9 @@ class AppRoutes {
   // --- Avaliações ---
   static String evaluatePerson(String personId) => '/pessoas/$personId/avaliar';
 
+  // --- Perfil ---
+  static const cameraCapture = '/perfil/camera';
+
   // Rotas acessíveis sem estar autenticado.
   static const publicRoutes = {splash, login, signUp};
 

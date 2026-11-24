@@ -1,0 +1,38 @@
+rules_version = '2';
+
+// Regras do Firebase Storage para as fotos de perfil.
+// Não publicadas: o Storage exige o plano Blaze. Ficam no projeto para
+// documentar a segurança esperada quando o Storage for ativado.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ---------- Funções auxiliares ----------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // Aceita apenas imagens de até 5 MB.
+    function validImage() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ---------- Fotos de perfil ----------
+
+    match /users/{userId}/{fileName} {
+      // Qualquer usuário logado pode ver as fotos.
+      allow read: if signedIn();
+
+      // Só o dono da conta envia, troca ou apaga a própria foto.
+      allow create, update: if isOwner(userId) && validImage();
+      allow delete: if isOwner(userId);
+    }
+
+    // Qualquer outro caminho: bloqueado.
+  }
+}

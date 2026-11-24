@@ -5,6 +5,7 @@ import '../storage/local_storage_helper.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/data/services/firebase_auth_service.dart';
 import '../../features/auth/data/services/firebase_google_auth_service.dart';
+import '../../features/auth/data/services/profile_photo_firebase_storage_service.dart';
 import '../../features/auth/data/services/session_shared_prefs_service.dart';
 import '../../features/auth/data/services/user_firestore_service.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
@@ -15,8 +16,11 @@ import '../../features/auth/domain/usecases/sign_in_usecase.dart';
 import '../../features/auth/domain/usecases/sign_in_with_google_usecase.dart';
 import '../../features/auth/domain/usecases/sign_out_usecase.dart';
 import '../../features/auth/domain/usecases/sign_up_usecase.dart';
+import '../../features/auth/domain/usecases/update_profile_photo_usecase.dart';
 import '../../features/auth/facade/auth_usecases_facade.dart';
+import '../../features/auth/presentation/services/image_picker_profile_photo_picker.dart';
 import '../../features/auth/presentation/viewmodels/auth_viewmodel.dart';
+import '../../features/auth/presentation/viewmodels/profile_photo_viewmodel.dart';
 
 // --- Evaluation ---
 import '../../features/evaluation/data/repositories/evaluation_repository_impl.dart';
@@ -81,6 +85,7 @@ class InjectionContainer {
 
   // --- ViewModels ---
   late final AuthViewModel authViewModel;
+  late final ProfilePhotoViewModel profilePhotoViewModel;
   late final PeopleListViewModel peopleListViewModel;
   late final PersonFormViewModel personFormViewModel;
   late final PersonDetailViewModel personDetailViewModel;
@@ -104,6 +109,7 @@ class InjectionContainer {
       FirebaseGoogleAuthService(),
       UserFirestoreService(),
       SessionSharedPrefsService(_storageHelper),
+      ProfilePhotoFirebaseStorageService(),
     );
     _personRepository = PersonRepositoryImpl(PersonFirestoreService());
     _evaluationRepository =
@@ -128,6 +134,8 @@ class InjectionContainer {
       getCurrentUser: GetCurrentUserUseCase(_authRepository),
       getCachedUser: GetCachedUserUseCase(_authRepository),
       signOut: SignOutUseCase(_authRepository),
+      updateProfilePhoto:
+          UpdateProfilePhotoUseCase(_authRepository, _requireUser),
     );
   }
 
@@ -186,6 +194,11 @@ class InjectionContainer {
 
   void _initViewModels() {
     authViewModel = AuthViewModel(authFacade);
+    profilePhotoViewModel = ProfilePhotoViewModel(
+      authFacade,
+      ImagePickerProfilePhotoPicker(),
+      authViewModel.currentUser,
+    );
 
     peopleListViewModel = PeopleListViewModel(personFacade);
     personFormViewModel = PersonFormViewModel(personFacade);

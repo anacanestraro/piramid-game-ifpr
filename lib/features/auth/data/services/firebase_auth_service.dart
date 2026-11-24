@@ -57,6 +57,36 @@ class FirebaseAuthService implements AuthService {
   }
 
   @override
+  Future<Result<AppUserModel>> updatePhotoUrl(String photoUrl) async {
+    try {
+      final user = _auth.currentUser;
+
+      if (user == null) {
+        return const Result.failure(
+          Failure('Você precisa estar logado para trocar a foto.'),
+        );
+      }
+
+      // A foto fica gravada no próprio perfil do Firebase Auth.
+      // Por isso ela continua valendo nos próximos logins, inclusive
+      // com Google (o Firebase não sobrescreve a foto a cada login).
+      await user.updatePhotoURL(photoUrl);
+
+      // Recarrega para garantir que o objeto local tem a URL nova.
+      await user.reload();
+      final refreshed = _auth.currentUser ?? user;
+
+      return Result.success(AppUserModel.fromFirebaseUser(refreshed));
+    } on FirebaseAuthException catch (e) {
+      return Result.failure(AuthErrorMapper.fromFirebase(e));
+    } catch (e) {
+      return Result.failure(
+        Failure('Não foi possível atualizar a foto do perfil', exception: e),
+      );
+    }
+  }
+
+  @override
   Future<Result<void>> signOut() async {
     try {
       await _auth.signOut();

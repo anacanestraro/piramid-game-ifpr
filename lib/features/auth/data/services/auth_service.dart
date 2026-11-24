@@ -1,7 +1,8 @@
 import '../../../../core/result/result.dart';
 import '../models/app_user_model.dart';
 
-// Comunicação com o provedor de autenticação por e-mail e senha.
+// Comunicação com o provedor de autenticação:
+// sessão, e-mail/senha e dados do perfil da conta.
 abstract class AuthService {
   Future<Result<AppUserModel?>> getCurrentUser();
 
@@ -14,6 +15,9 @@ abstract class AuthService {
     required String email,
     required String password,
   });
+
+  // Atualiza a foto do perfil da conta logada e retorna o usuário atualizado.
+  Future<Result<AppUserModel>> updatePhotoUrl(String photoUrl);
 
   Future<Result<void>> signOut();
 }
